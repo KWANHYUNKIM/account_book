@@ -103,3 +103,4 @@ openbanking.api-base-url=https://testapi.openbanking.or.kr
 - 오픈뱅킹 고객센터: 1588-5000
 - 이메일: support@openbanking.or.kr
 
+

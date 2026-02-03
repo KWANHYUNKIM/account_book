@@ -232,3 +232,4 @@ Client Response
 - **재사용성**: Service 로직을 여러 Controller에서 재사용 가능
 - **표준화**: 일관된 코드 구조로 가독성 향상
 
+

@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import api from '@/utils/api'
-import Sidebar from '@/components/Sidebar'
-import DashboardView from '@/components/DashboardView'
-import SessionDetailView from '@/components/SessionDetailView'
-import BankAccountListView from '@/components/BankAccountListView'
-import LoginForm from '@/components/LoginForm'
-import RegisterForm from '@/components/RegisterForm'
+import Sidebar from '@/layout/Sidebar'
+import DashboardView from '@/features/session/DashboardView'
+import SessionListView from '@/features/session/SessionListView'
+import SessionDetailView from '@/features/session/SessionDetailView'
+import BankAccountListView from '@/features/bank/BankAccountListView'
+import LoginForm from '@/features/auth/LoginForm'
+import RegisterForm from '@/features/auth/RegisterForm'
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<{ email: string; name: string } | null>(null)
   const [showLogin, setShowLogin] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
-  const [currentView, setCurrentView] = useState<'dashboard' | 'session' | 'accounts' | 'settings'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'sessions' | 'session' | 'accounts' | 'settings'>('dashboard')
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -103,11 +104,14 @@ export default function Home() {
         {currentView === 'dashboard' && (
           <DashboardView onSessionClick={handleSessionClick} />
         )}
+        {currentView === 'sessions' && (
+          <SessionListView onSessionClick={handleSessionClick} />
+        )}
         {currentView === 'session' && selectedSessionId && (
           <SessionDetailView
             sessionId={selectedSessionId}
             onBack={() => {
-              setCurrentView('dashboard')
+              setCurrentView('sessions')
               setSelectedSessionId(null)
             }}
           />

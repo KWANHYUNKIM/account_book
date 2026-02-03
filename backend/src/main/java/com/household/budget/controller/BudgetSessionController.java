@@ -26,7 +26,16 @@ public class BudgetSessionController {
         try {
             List<BudgetSessionDto> sessions = sessionService.getAllSessions();
             return ResponseEntity.ok(ApiResponse.success(sessions));
+        } catch (RuntimeException e) {
+            // 인증 관련 에러는 401로 반환
+            if (e.getMessage() != null && e.getMessage().contains("인증")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error(e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("세션 목록 조회 실패: " + e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace(); // 로그 출력
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("세션 목록 조회 실패: " + e.getMessage()));
         }

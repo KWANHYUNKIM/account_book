@@ -22,3 +22,4 @@ public class BankAccountDto {
     private LocalDateTime lastSyncedAt;
 }
 
+

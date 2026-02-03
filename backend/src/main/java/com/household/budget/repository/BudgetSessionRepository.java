@@ -14,3 +14,4 @@ public interface BudgetSessionRepository extends JpaRepository<BudgetSession, Lo
     List<BudgetSession> findByUserIdAndNameContaining(Long userId, String name);
 }
 
+

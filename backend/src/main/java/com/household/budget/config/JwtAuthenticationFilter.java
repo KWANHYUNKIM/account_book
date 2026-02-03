@@ -47,10 +47,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            logger.error("JWT 토큰 처리 중 오류 발생", e);
+            logger.error("JWT 토큰 처리 중 오류 발생: " + e.getMessage(), e);
+            // 토큰 파싱 실패 시 인증 없이 진행 (401 에러는 Security가 처리)
         }
 
         chain.doFilter(request, response);
     }
 }
+
 

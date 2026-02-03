@@ -25,9 +25,17 @@ public class BudgetSessionService {
     private Long getCurrentUserId() {
         String email = UserContext.getCurrentUserEmail();
         if (email == null) {
-            throw new RuntimeException("인증이 필요합니다.");
+            throw new RuntimeException("인증이 필요합니다. JWT 토큰이 유효하지 않거나 만료되었습니다.");
         }
-        return authService.getUserByEmail(email).getId();
+        try {
+            var user = authService.getUserByEmail(email);
+            if (user == null) {
+                throw new RuntimeException("사용자를 찾을 수 없습니다: " + email);
+            }
+            return user.getId();
+        } catch (Exception e) {
+            throw new RuntimeException("사용자 조회 실패: " + e.getMessage(), e);
+        }
     }
 
     private boolean isAdmin() {
@@ -44,11 +52,17 @@ public class BudgetSessionService {
     }
 
     public List<BudgetSessionDto> getAllSessions() {
-        Long userId = getCurrentUserId();
-        List<BudgetSession> sessions = sessionRepository.findByUserIdOrderByLastAccessedAtDesc(userId);
-        return sessions.stream()
-                .map(session -> toDto(session))
-                .collect(Collectors.toList());
+        try {
+            Long userId = getCurrentUserId();
+            List<BudgetSession> sessions = sessionRepository.findByUserIdOrderByLastAccessedAtDesc(userId);
+            return sessions.stream()
+                    .map(session -> toDto(session))
+                    .collect(Collectors.toList());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("세션 목록 조회 중 오류 발생: " + e.getMessage(), e);
+        }
     }
 
     public BudgetSessionDto getSessionById(Long id) {
@@ -101,39 +115,57 @@ public class BudgetSessionService {
     }
 
     private BudgetSessionDto toDto(BudgetSession session) {
-        BudgetSessionDto dto = new BudgetSessionDto();
-        dto.setId(session.getId());
-        dto.setName(session.getName());
-        dto.setDescription(session.getDescription());
-        dto.setColor(session.getColor());
-        dto.setIcon(session.getIcon());
-        dto.setCreatedAt(session.getCreatedAt());
-        dto.setLastAccessedAt(session.getLastAccessedAt());
+        try {
+            BudgetSessionDto dto = new BudgetSessionDto();
+            dto.setId(session.getId());
+            dto.setName(session.getName());
+            dto.setDescription(session.getDescription());
+            dto.setColor(session.getColor());
+            dto.setIcon(session.getIcon());
+            dto.setCreatedAt(session.getCreatedAt());
+            dto.setLastAccessedAt(session.getLastAccessedAt());
 
-        // 세션별 통계 계산
-        Long sessionId = session.getId();
-        List<com.household.budget.entity.Transaction> transactions = 
-            transactionRepository.findAll().stream()
-                .filter(t -> t.getSession() != null && t.getSession().getId().equals(sessionId))
-                .collect(Collectors.toList());
+            // 세션별 통계 계산
+            Long sessionId = session.getId();
+            Long userId = session.getUser() != null ? session.getUser().getId() : getCurrentUserId();
+            
+            List<com.household.budget.entity.Transaction> transactions = 
+                transactionRepository.findByUserIdAndSessionId(userId, sessionId);
 
-        dto.setTransactionCount((long) transactions.size());
-        
-        BigDecimal totalIncome = transactions.stream()
-                .filter(t -> "INCOME".equals(t.getType()))
-                .map(com.household.budget.entity.Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal totalExpense = transactions.stream()
-                .filter(t -> "EXPENSE".equals(t.getType()))
-                .map(com.household.budget.entity.Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            dto.setTransactionCount((long) transactions.size());
+            
+            BigDecimal totalIncome = transactions.stream()
+                    .filter(t -> "INCOME".equals(t.getType()))
+                    .map(com.household.budget.entity.Transaction::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            BigDecimal totalExpense = transactions.stream()
+                    .filter(t -> "EXPENSE".equals(t.getType()))
+                    .map(com.household.budget.entity.Transaction::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        dto.setTotalIncome(totalIncome);
-        dto.setTotalExpense(totalExpense);
-        dto.setBalance(totalIncome.subtract(totalExpense));
+            dto.setTotalIncome(totalIncome);
+            dto.setTotalExpense(totalExpense);
+            dto.setBalance(totalIncome.subtract(totalExpense));
 
-        return dto;
+            return dto;
+        } catch (Exception e) {
+            // 통계 계산 실패 시 기본값 반환
+            BudgetSessionDto dto = new BudgetSessionDto();
+            dto.setId(session.getId());
+            dto.setName(session.getName());
+            dto.setDescription(session.getDescription());
+            dto.setColor(session.getColor());
+            dto.setIcon(session.getIcon());
+            dto.setCreatedAt(session.getCreatedAt());
+            dto.setLastAccessedAt(session.getLastAccessedAt());
+            dto.setTransactionCount(0L);
+            dto.setTotalIncome(BigDecimal.ZERO);
+            dto.setTotalExpense(BigDecimal.ZERO);
+            dto.setBalance(BigDecimal.ZERO);
+            return dto;
+        }
     }
 }
+
 
